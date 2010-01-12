@@ -1,6 +1,7 @@
 
 #include "jsNetTools.h"
 #include "jsInterface.h"
+#include "NPN.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +13,7 @@
 #define DBG_PRINTV(fmt, ...)     (fprintf(stderr, "%s:" fmt "\n", __FUNCTION__, __VA_ARGS__))
 #define DBG_PRINT(fmt)     (fprintf(stderr, "%s:" fmt "\n", __FUNCTION__))
 
-static NPNetscapeFuncs* sBrowserFuncs = NULL;
+NPNetscapeFuncs* gBrowserFuncs = NULL;
 
 typedef struct InstanceData {
     NPP npp;
@@ -22,7 +23,7 @@ typedef struct InstanceData {
 NP_EXPORT(NPError)
 NP_Initialize(NPNetscapeFuncs *bFuncs, NPPluginFuncs *pFuncs)
 {
-    sBrowserFuncs = bFuncs;
+    gBrowserFuncs = bFuncs;
 
     // Populate the pFuncs table
     memset(pFuncs, 0, sizeof(pFuncs));
@@ -54,13 +55,13 @@ NP_Shutdown()
 NP_EXPORT(char*)
 NP_GetPluginVersion()
 {
-  return PLUGIN_VERSION;
+  return (char*)PLUGIN_VERSION;
 }
 
 NP_EXPORT(char*)
 NP_GetMIMEDescription()
 {
-  return "application/nettool:ntl:NetTool";
+  return (char*)"application/nettool:ntl:NetTool";
 }
 
 NP_EXPORT(NPError)
@@ -69,36 +70,16 @@ NP_GetValue(void* instance, NPPVariable variable, void* aValue)
     DBG_PRINTV("Variable: %d", variable);
     switch (variable) {
         case NPPVpluginNameString:
-            *((char**)aValue) = PLUGIN_NAME;
+            *((char**)aValue) = (char*)PLUGIN_NAME;
             break;
         case NPPVpluginDescriptionString:
-            *((char**)aValue) = PLUGIN_DESCRIPTION;
+            *((char**)aValue) = (char*)PLUGIN_DESCRIPTION;
             break;
         case NPPVpluginScriptableNPObject:
             {
-                //{
-                //    // nsITestPlugin interface object should be associated with the plugin
-                //    // instance itself. For the purpose of this example to keep things simple
-                //    // we just assign it to instance->pdata after we create it.
-
-                //    nsITestPlugin *scriptablePeer = (nsITestPlugin *)instance->pdata;
-
-                //    // see if this is the first time and we haven't created it yet
-                //    if (!scriptablePeer) {
-                //        scriptablePeer = new nsScriptablePeer();
-                //        if (scriptablePeer)
-                //            NS_ADDREF(scriptablePeer); // addref for ourself,
-                //        // don't forget to release on
-                //        // shutdown to trigger its destruction
-                //    }
-                //    // add reference for the caller requesting the object
-                //    NS_ADDREF(scriptablePeer);
-                //    *(nsISupports **)value = scriptablePeer;
-                //}
-
                 if (instance)
                 {
-                    *((NPObject**)aValue) = jsInterface_New(instance);
+                    *((NPObject**)aValue) = jsInterface_New((NPP)instance);
                 }
                 else
                 {
@@ -107,13 +88,6 @@ NP_GetValue(void* instance, NPPVariable variable, void* aValue)
                 DBG_PRINTV("%p", *((NPObject**)aValue));
             }
             break;
-        //case NPPVpluginScriptableIID:
-        //    {
-        //        nsIID* ptr = (nsIID*) NPN_MemAlloc(sizeof(nsIID));
-        //        *ptr = scriptableIID;
-        //        *(nsIID **)value = ptr;
-        //    }
-        //    break;
         default:
             return NPERR_INVALID_PARAM;
             break;
@@ -196,7 +170,53 @@ NPP_URLNotify(NPP instance, const char* URL, NPReason reason, void* notifyData)
 NPError
 NPP_GetValue(NPP instance, NPPVariable variable, void *value) 
 {
-  return NPERR_GENERIC_ERROR;
+    DBG_PRINTV("Variable: %d", variable);
+    switch (variable) {
+        case NPPVpluginScriptableNPObject:
+            {
+                //{
+                //    // nsITestPlugin interface object should be associated with the plugin
+                //    // instance itself. For the purpose of this example to keep things simple
+                //    // we just assign it to instance->pdata after we create it.
+
+                //    nsITestPlugin *scriptablePeer = (nsITestPlugin *)instance->pdata;
+
+                //    // see if this is the first time and we haven't created it yet
+                //    if (!scriptablePeer) {
+                //        scriptablePeer = new nsScriptablePeer();
+                //        if (scriptablePeer)
+                //            NS_ADDREF(scriptablePeer); // addref for ourself,
+                //        // don't forget to release on
+                //        // shutdown to trigger its destruction
+                //    }
+                //    // add reference for the caller requesting the object
+                //    NS_ADDREF(scriptablePeer);
+                //    *(nsISupports **)value = scriptablePeer;
+                //}
+
+                if (instance)
+                {
+                    *((NPObject**)value) = jsInterface_New(instance);
+                }
+                else
+                {
+                    return NPERR_INVALID_PARAM;
+                }
+                DBG_PRINTV("%p", *((NPObject**)value));
+            }
+            break;
+            //case NPPVpluginScriptableIID:
+            //    {
+            //        nsIID* ptr = (nsIID*) NPN_MemAlloc(sizeof(nsIID));
+            //        *ptr = scriptableIID;
+            //        *(nsIID **)value = ptr;
+            //    }
+            //    break;
+        default:
+            return NPERR_INVALID_PARAM;
+            break;
+    }
+    return NPERR_NO_ERROR;
 }
 
 NPError

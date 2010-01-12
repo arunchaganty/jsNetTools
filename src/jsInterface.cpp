@@ -1,5 +1,6 @@
 
 #include "jsInterface.h"
+#include "NPN.h"
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
@@ -8,10 +9,12 @@
 #define DBG_PRINTV(fmt, ...)     (fprintf(stderr, "%s:" fmt "\n", __FUNCTION__, __VA_ARGS__))
 #define DBG_PRINT(fmt)     (fprintf(stderr, "%s:" fmt "\n", __FUNCTION__))
 
+extern NPNetscapeFuncs* gBrowserFuncs;
+
 static const NPUTF8* jsInterfaceMethodNames[JS_INTERFACE_METHOD_COUNT] = 
 {
-    "ping",
-    "nslookup"
+    "Ping",
+    "Nslookup"
 };
 
 #define JS_INTERFACE_PROPERTY_COUNT 0
@@ -42,7 +45,7 @@ jsInterface_New(NPP plugin)
 {
     NPObject* object = NULL;
     DBG_PRINT("");
-    object = NPN_CreateObject(plugin, &jsNetToolsClass);
+    object = gBrowserFuncs->createobject(plugin, &jsNetToolsClass);
 
     return object;
 }
@@ -74,7 +77,6 @@ jsInterface_HasMethod (NPObject *npobj, NPIdentifier name)
     int i;
     bool retVal = false;
     NPUTF8* methodName;
-    DBG_PRINT("");
 
     methodName = NPN_UTF8FromIdentifier(name);
     if (!methodName)
@@ -89,6 +91,7 @@ jsInterface_HasMethod (NPObject *npobj, NPIdentifier name)
         }
     }
 
+    DBG_PRINTV("methodName: %s: %d", methodName, retVal);
     free(methodName);
     return retVal;
 }
@@ -97,8 +100,15 @@ bool jsInterface_Invoke (NPObject *npobj, NPIdentifier name,
                             const NPVariant *args, uint32_t argCount,
                             NPVariant *result)
 {
-    DBG_PRINT("");
-    return false;
+    bool retVal = false;
+    NPUTF8* methodName;
+
+    methodName = NPN_UTF8FromIdentifier(name);
+    if (!methodName)
+        return false;
+    DBG_PRINTV("methodName: %s: %d", methodName, retVal);
+
+    return true;
 }
 
 bool jsInterface_InvokeDefault (NPObject *npobj,
@@ -116,8 +126,8 @@ bool jsInterface_HasProperty (NPObject *npobj, NPIdentifier name)
     bool retVal = false;
     NPUTF8* propertyName;
 
-    DBG_PRINT("");
     propertyName = NPN_UTF8FromIdentifier(name);
+    DBG_PRINTV("propertyName: %s", propertyName);
     if (!propertyName)
         return false;
 
@@ -156,13 +166,14 @@ bool jsInterface_RemoveProperty (NPObject *npobj,
 bool jsInterface_Enumeration (NPObject *npobj, NPIdentifier **value,
                                  uint32_t *count)
 {
-    DBG_PRINT("");
-    *count = (JS_INTERFACE_METHOD_COUNT + JS_INTERFACE_PROPERTY_COUNT);
-    *value = NPN_MemAlloc((*count) * sizeof(NPIdentifier));
-
-    NPN_GetStringIdentifiers(jsInterfaceMethodNames, JS_INTERFACE_METHOD_COUNT, (*value));
-    NPN_GetStringIdentifiers(jsInterfacePropertyNames, JS_INTERFACE_PROPERTY_COUNT, ((*value)+JS_INTERFACE_METHOD_COUNT));
-
+    return false;
+//    DBG_PRINT("");
+//    *count = (JS_INTERFACE_METHOD_COUNT + JS_INTERFACE_PROPERTY_COUNT);
+//    *value = (NPIdentifier*)NPN_MemAlloc((*count) * sizeof(NPIdentifier));
+//
+//    NPN_GetStringIdentifiers(jsInterfaceMethodNames, JS_INTERFACE_METHOD_COUNT, (*value));
+//    NPN_GetStringIdentifiers(jsInterfacePropertyNames, JS_INTERFACE_PROPERTY_COUNT, ((*value)+JS_INTERFACE_METHOD_COUNT));
+//
     return true;
 }
 

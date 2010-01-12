@@ -2,10 +2,11 @@
 # Author: Arun Chaganty <arunchaganty@gmail.com>
 #
 
-CC=gcc
+CC=g++
 CFLAGS=-Wall -DXP_UNIX=1 -DMOZ_X11=1 -fPIC -g -Iinclude `pkg-config --cflags libxul`
-LDFLAGS=`pkg-config --libs libxul`
-TARGETS=lib/jsNetTools.so
+CXXFLAGS=$(CFLAGS)
+LDFLAGS=`pkg-config --libs libxul mozilla-plugin`
+TARGETS=lib/libjsNetTools.so
 
 INSTALLDIR=$(HOME)/.mozilla/plugins
 IDLTOOL=$(HOME)/Projects/mozilla-central/ff-opt/dist/bin/xpidl
@@ -13,25 +14,20 @@ IDL_INCLUDEDIR=$(HOME)/Projects/mozilla-central/ff-opt/dist/idl/
 
 all: $(TARGETS)
 
-lib/jsNetTools.so: obj/jsNetTools.o obj/jsInterface.o
+lib/libjsNetTools.so: obj/jsNetTools.o obj/jsInterface.o obj/NPN.o
 	$(CC) $(CFLAGS) -shared $^ -o $@
 
-obj/jsNetTools.o: src/jsNetTools.c
+obj/jsNetTools.o: src/jsNetTools.cpp
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-obj/jsInterface.o: src/jsInterface.c
+obj/jsInterface.o: src/jsInterface.cpp
 	$(CC) $(CFLAGS) -c $^ -o $@
 
-include/jsINetTools.h lib/jsINetTools.xpt: src/jsINetTools.idl
-	$(IDLTOOL) -w -I $(IDL_INCLUDEDIR) -m header $^ -e jsINetTools.h
-	$(IDLTOOL) -w -I $(IDL_INCLUDEDIR) -m typelib $^ -e jsINetTools.xpt
-	mv jsINetTools.h include/
-	mv jsINetTools.xpt lib/
+obj/NPN.o: src/NPN.cpp
+	$(CC) $(CFLAGS) -c $^ -o $@
 
-install: lib/jsNetTools.so
+install: lib/libjsNetTools.so
 	install $^ $(INSTALLDIR)
-
-
 
 .PHONY: clean
 

@@ -1,8 +1,0 @@
-#include "nsISupports.idl"
-
-[scriptable, uuid(d874bfc3-0037-49a0-9755-1ed11a866df1)]
-interface jsNetTools : nsISupports {
-      void ping();
-      void nslookup();
-};
-
