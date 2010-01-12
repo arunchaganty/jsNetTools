@@ -1,4 +1,7 @@
 <html>
+<head>
+    <title>jsNetTools Test</title>
+</head>
 <body>
 
 <center><h1>jsNetTools Plugin Example for Mozilla Test Case</h1></center>
@@ -9,6 +12,11 @@ This test case is to demonstrate the basic functionalities of the jsNetTools plu
 
 <center>
 <embed type="application/nettool" width=600 height=80 tool="ping" target="10.94.0.254">
+<script>
+  var embed = document.embeds[0];
+  alert(embed.ping());
+</script>
+
 </center>
 
 </html>
