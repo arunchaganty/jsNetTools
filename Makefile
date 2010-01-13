@@ -9,23 +9,45 @@ LDFLAGS=`pkg-config --libs libxul`
 TARGETS=lib/libjsNetTools.so
 
 INSTALLDIR=$(HOME)/.mozilla/plugins
+VERSION=0.1
+
+SRCFILES=include/ misc/ src/ tests/ Makefile README 
+DISTFILES=lib/libjsNetTools.so misc/install.sh tests/ README
 
 all: $(TARGETS)
 
 lib/libjsNetTools.so: obj/jsNetTools.o obj/jsInterface.o obj/NPN.o
+	if [ ! -e lib ]; then mkdir lib; fi;
 	$(CC) $(CFLAGS) -shared $^ -o $@
 
 obj/jsNetTools.o: src/jsNetTools.cpp
+	if [ ! -e obj ]; then mkdir obj; fi;
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 obj/jsInterface.o: src/jsInterface.cpp
+	if [ ! -e obj ]; then mkdir obj; fi;
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 obj/NPN.o: src/NPN.cpp
+	if [ ! -e obj ]; then mkdir obj; fi;
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 install: lib/libjsNetTools.so
 	install $^ $(INSTALLDIR)
+
+src-dist: 
+	rm -rf jsNetTools-src-$(VERSION)
+	mkdir jsNetTools-src-$(VERSION)
+	cp -rf $(SRCFILES) jsNetTools-src-$(VERSION)/
+	tar -czf jsNetTools-src-$(VERSION).tar.gz jsNetTools-src-$(VERSION)/
+	rm -rf jsNetTools-src-$(VERSION)
+
+bin-dist: all
+	rm -rf jsNetTools-$(VERSION)
+	mkdir jsNetTools-$(VERSION)
+	cp -rf $(DISTFILES) jsNetTools-$(VERSION)/
+	tar -czf jsNetTools-$(VERSION).tar.gz jsNetTools-$(VERSION)/
+	rm -r jsNetTools-$(VERSION)
 
 .PHONY: clean
 
