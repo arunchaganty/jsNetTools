@@ -5,12 +5,10 @@
 CC=g++
 CFLAGS=-Wall -DXP_UNIX=1 -DMOZ_X11=1 -fPIC -g -Iinclude `pkg-config --cflags libxul`
 CXXFLAGS=$(CFLAGS)
-LDFLAGS=`pkg-config --libs libxul mozilla-plugin`
+LDFLAGS=`pkg-config --libs libxul`
 TARGETS=lib/libjsNetTools.so
 
 INSTALLDIR=$(HOME)/.mozilla/plugins
-IDLTOOL=$(HOME)/Projects/mozilla-central/ff-opt/dist/bin/xpidl
-IDL_INCLUDEDIR=$(HOME)/Projects/mozilla-central/ff-opt/dist/idl/
 
 all: $(TARGETS)
 

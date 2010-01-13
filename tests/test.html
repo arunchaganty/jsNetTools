@@ -1,23 +1,50 @@
 <html>
 <head>
     <title>jsNetTools Test</title>
+    <style type="text/css">
+        body {
+            width: 800px;
+            height: 100%;
+            margin: 10px auto;
+            font-family: sans-serif;
+        }
+    </style>
+    <script>
+        function pingUpdateField(hostSrc, resultLoc)
+        {
+            var hostEntry = document.getElementById(hostSrc);
+            var resultEntry = document.getElementById(resultLoc);
+            var netTool = document.getEmbeds[0];
+            resultLoc.innerHTML = netTool.Ping(hostEntry.innerHTML);
+        }
+    </script>
 </head>
 <body>
 
 <center><h1>jsNetTools Plugin Example for Mozilla Test Case</h1></center>
 
 <p>
-This test case is to demonstrate the basic functionalities of the jsNetTools plugin.
+This test case is to demonstrate the basic functionalities of the jsNetTools plugin. It will ping a host, and return it's rtt times, in min/avg/max/mdev format.
 </p>
 
 <center>
-<embed type="application/nettool" width=600 height=80 tool="ping" target="10.94.0.254">
-<script>
-  var embed = document.embeds[0];
-  alert(embed.Ping());
-</script>
-
+<table>
+    <thead>
+        <th>Host</th>
+        <th>RTT(min/avg/max/mdev)</th>
+    </thead>
+    <tbody>
+        <tr><td id="host1">www.cse.iitm.ac.in</td><td id="rtt1"></td></tr>
+        <tr><td id="host2">www.google.com</td><td id="rtt1"></td></tr>
+        <tr><td id="host3">undefined.abcdef.com</td><td id="rtt1"></td></tr>
+    </tbody>
+</table>
 </center>
+
+<p>
+To run the script, click the button: <button onclick="pingUpdateField('host1', 'rtt1');">Ping!</button>
+</p>
+
 
 </html>
 </body>
