@@ -8,14 +8,21 @@
             margin: 10px auto;
             font-family: sans-serif;
         }
+        td.result {
+            text-align: center;
+        }
     </style>
     <script>
         function pingUpdateField(hostSrc, resultLoc)
         {
             var hostEntry = document.getElementById(hostSrc);
             var resultEntry = document.getElementById(resultLoc);
-            var netTool = document.getEmbeds[0];
-            resultLoc.innerHTML = netTool.Ping(hostEntry.innerHTML);
+            var netTool = document.embeds[0];
+            var rtt = netTool.Ping(hostEntry.innerHTML);
+            if (rtt)
+                resultEntry.innerHTML = rtt;
+            else
+                resultEntry.innerHTML = "Ping Failed.";
         }
     </script>
 </head>
@@ -26,6 +33,7 @@
 <p>
 This test case is to demonstrate the basic functionalities of the jsNetTools plugin. It will ping a host, and return it's rtt times, in min/avg/max/mdev format.
 </p>
+<embed type="application/nettool" hidden="true" />
 
 <center>
 <table>
@@ -34,15 +42,15 @@ This test case is to demonstrate the basic functionalities of the jsNetTools plu
         <th>RTT(min/avg/max/mdev)</th>
     </thead>
     <tbody>
-        <tr><td id="host1">www.cse.iitm.ac.in</td><td id="rtt1"></td></tr>
-        <tr><td id="host2">www.google.com</td><td id="rtt1"></td></tr>
-        <tr><td id="host3">undefined.abcdef.com</td><td id="rtt1"></td></tr>
+        <tr><td id="host1">www.cse.iitm.ac.in</td><td class="result" id="rtt1"></td></tr>
+        <tr><td id="host2">www.google.com</td><td class="result" id="rtt2"></td></tr>
+        <tr><td id="host3">undefined.abcdef.com</td><td class="result" id="rtt3"></td></tr>
     </tbody>
 </table>
 </center>
 
 <p>
-To run the script, click the button: <button onclick="pingUpdateField('host1', 'rtt1');">Ping!</button>
+To run the script, click the button: <button onclick="pingUpdateField('host1', 'rtt1'); pingUpdateField('host2', 'rtt2'); pingUpdateField('host3', 'rtt3');">Ping!</button>
 </p>
 
 
