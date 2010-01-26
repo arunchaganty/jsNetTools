@@ -1,3 +1,17 @@
+/*
+ * jsInterface.cpp - 
+ * Last Modified: January 26, 2010
+ * Copyright (C) Arun Tejasvi Chaganty 2009 <arunchaganty@gmail.com>
+ */
+/**
+ * @file jsInterface.cpp
+ * @author Arun Tejasvi Chaganty <arunchaganty@gmail.com>
+ * @version 0.1
+ * 
+ * @section Description
+ * Javascript API for jsNetTools
+ * Contains all Javascript API functions exposed by the plugin.
+ */
 
 #include "jsInterface.h"
 #include "NPN.h"
@@ -7,11 +21,11 @@
 #include <stdlib.h>
 #include <regex.h>
 
-#define DBG_PRINTV(fmt, ...)     (fprintf(stderr, "%s:" fmt "\n", __FUNCTION__, __VA_ARGS__))
-#define DBG_PRINT(fmt)     (fprintf(stderr, "%s:" fmt "\n", __FUNCTION__))
+#define CMD_BUF_SIZE    500
 
 extern NPNetscapeFuncs* gBrowserFuncs;
 
+/* Internal functions for the JS object */
 static NPObject* jsInterface_Allocate (NPP npp, NPClass *aClass);
 static void jsInterface_Deallocate (NPObject *npobj);
 static void jsInterface_Invalidate (NPObject *npobj);
@@ -37,75 +51,117 @@ static bool jsInterface_Construct (NPObject *npobj,
         uint32_t argCount,
         NPVariant *result);
 
+/* jsNetTools API functions */
+/*
+ * To add a new API function, add the name and function to the
+ * jsInterfaceMethodNames and jsInterfaceMethodImpl arrays respectively.
+ */
 
-#define JS_INTERFACE_METHOD_COUNT 2
 typedef bool (*ScriptableFunc) (const NPVariant *args, uint32_t argCount, NPVariant *result);
 static bool jsNetTool_Ping (const NPVariant *args, uint32_t argCount, NPVariant *result);
-static bool jsNetTool_Nslookup (const NPVariant *args, uint32_t argCount, NPVariant *result);
 
-static const NPUTF8* jsInterfaceMethodNames[JS_INTERFACE_METHOD_COUNT] = 
+static const NPUTF8* jsInterfaceMethodNames[] = 
 {
     "Ping",
-    "Nslookup"
 };
 
 static const ScriptableFunc
-jsInterfaceMethodImpl[JS_INTERFACE_METHOD_COUNT] = 
+jsInterfaceMethodImpl[] = 
 {
     jsNetTool_Ping,
-    jsNetTool_Nslookup
 };
+#define JS_INTERFACE_METHOD_COUNT ARR_LEN(jsInterfaceMethodImpl)
 
-#define JS_INTERFACE_PROPERTY_COUNT 0
 static const NPUTF8* 
-jsInterfacePropertyNames[JS_INTERFACE_PROPERTY_COUNT] = 
+jsInterfacePropertyNames[] = 
 {
 };
+#define JS_INTERFACE_PROPERTY_COUNT ARR_LEN(jsInterfacePropertyNames)
 
+/**
+ * Definition of the jsNetToolsClass
+ * This object contains function pointers to all the JS object properties
+ */
 static NPClass jsNetToolsClass =
 {
-    NP_CLASS_STRUCT_VERSION_ENUM, // structVersion
-    NULL, // allocate
-    NULL, // deallocate
-    jsInterface_Invalidate, // invalidate
-    jsInterface_HasMethod, // hasMethod
-    jsInterface_Invoke, // invoke
-    jsInterface_InvokeDefault, // invokeDefault
-    jsInterface_HasProperty, // hasProperty
-    jsInterface_GetProperty, // getProperty
-    jsInterface_SetProperty, // setProperty
-    jsInterface_RemoveProperty, // removeProperty
-    jsInterface_Enumeration, // enumerate
-    NULL // construct
+    NP_CLASS_STRUCT_VERSION_ENUM,   // structVersion
+    NULL,                           // allocate
+    NULL,                           // deallocate
+    jsInterface_Invalidate,         // invalidate
+    jsInterface_HasMethod,          // hasMethod
+    jsInterface_Invoke,             // invoke
+    jsInterface_InvokeDefault,      // invokeDefault
+    jsInterface_HasProperty,        // hasProperty
+    jsInterface_GetProperty,        // getProperty
+    jsInterface_SetProperty,        // setProperty
+    jsInterface_RemoveProperty,     // removeProperty
+    jsInterface_Enumeration,        // enumerate
+    NULL                            // construct
 };
 
+/* JS Object implementations */
+
+/** 
+ * Create a new jsNetToolsClass instance
+ * 
+ * @param plugin - Parent plugin
+ * @return JS Object
+ */
 NPObject*
 jsInterface_New(NPP plugin)
 {
     NPObject* object = NULL;
-    object = gBrowserFuncs->createobject(plugin, &jsNetToolsClass);
+    object = NPN_CreateObject(plugin, &jsNetToolsClass);
 
     return object;
 }
 
+/** 
+ * Custom allocation of memory.
+ * Stub for future use.
+ * 
+ * @param plugin - Parent plugin
+ * @param aClass - Plugin class
+ * @return JS Object
+ */
 static NPObject* 
-jsInterface_Allocate (NPP npp, NPClass *aClass)
+jsInterface_Allocate (NPP plugin, NPClass *aClass)
 {
     assert(false);
     return NULL;
 }
 
+/** 
+ * Custom freeing of memory.
+ * Stub for future use.
+ * 
+ * @param npobj - Instance
+ */
 static void 
 jsInterface_Deallocate (NPObject *npobj)
 {
     assert(false);
 }
 
+/** 
+ * Invalidate the object so that it can not be used again
+ * Stub for future use.
+ * 
+ * @param npobj - Instance
+ */
 static void 
 jsInterface_Invalidate (NPObject *npobj)
 {
 }
 
+/** 
+ * Query if the object has a method
+ * 
+ * @param npobj - Instance
+ * @param name - Method name (as a browser-specific identifier) 
+ *
+ * @return True if method correctly executed. False otherwise
+ */
 static bool 
 jsInterface_HasMethod (NPObject *npobj, NPIdentifier name)
 {
@@ -130,6 +186,17 @@ jsInterface_HasMethod (NPObject *npobj, NPIdentifier name)
     return retVal;
 }
 
+/** 
+ * Invoke a method
+ * 
+ * @param npobj - Instance
+ * @param name - Method name (as a browser-specific identifier) 
+ * @param args - Array of arguments
+ * @param argCount - Number of arguments
+ * @param result - Result of the method should be stored here
+ *
+ * @return True if method correctly executed. False otherwise
+ */
 static bool 
 jsInterface_Invoke (NPObject *npobj, NPIdentifier name,
                             const NPVariant *args, uint32_t argCount,
@@ -155,6 +222,17 @@ jsInterface_Invoke (NPObject *npobj, NPIdentifier name,
     return true;
 }
 
+/** 
+ * Invoke the default method
+ * Stub for future use.
+ * 
+ * @param npobj - Instance
+ * @param args - Array of arguments
+ * @param argCount - Number of arguments
+ * @param result - Result of the method should be stored here
+ *
+ * @return True if method correctly executed. False otherwise
+ */
 static bool 
 jsInterface_InvokeDefault (NPObject *npobj,
                                    const NPVariant *args,
@@ -164,6 +242,14 @@ jsInterface_InvokeDefault (NPObject *npobj,
     return false;
 }
 
+/** 
+ * Query if the object has a property
+ * 
+ * @param npobj - Instance
+ * @param name - Property name (as a browser-specific identifier) 
+ *
+ * @return True if method correctly executed. False otherwise
+ */
 static bool 
 jsInterface_HasProperty (NPObject *npobj, NPIdentifier name)
 {
@@ -187,6 +273,16 @@ jsInterface_HasProperty (NPObject *npobj, NPIdentifier name)
     return retVal;
 }
 
+
+/** 
+ * Get a property value
+ * 
+ * @param npobj - Instance
+ * @param name - Property name (as a browser-specific identifier) 
+ * @param result - Value of the property should be stored here
+ *
+ * @return True if method correctly executed. False otherwise
+ */
 static bool 
 jsInterface_GetProperty (NPObject *npobj, NPIdentifier name,
                                  NPVariant *result)
@@ -194,6 +290,16 @@ jsInterface_GetProperty (NPObject *npobj, NPIdentifier name,
     return false;
 
 }
+
+/** 
+ * Set a property value
+ * 
+ * @param npobj - Instance
+ * @param name - Property name (as a browser-specific identifier) 
+ * @param result - Value of the property should be taken from here
+ *
+ * @return True if method correctly executed. False otherwise
+ */
 static bool 
 jsInterface_SetProperty (NPObject *npobj, NPIdentifier name,
                                  const NPVariant *value)
@@ -201,6 +307,15 @@ jsInterface_SetProperty (NPObject *npobj, NPIdentifier name,
     return false;
 }
 
+/** 
+ * Remove a property
+ * 
+ * @param npobj - Instance
+ * @param name - Property name (as a browser-specific identifier) 
+ * @param result - Value of the property should be taken from here
+ *
+ * @return True if method correctly executed. False otherwise
+ */
 static bool 
 jsInterface_RemoveProperty (NPObject *npobj,
                                     NPIdentifier name)
@@ -208,6 +323,15 @@ jsInterface_RemoveProperty (NPObject *npobj,
     return false;
 }
 
+/** 
+ * Enumerate all the methods and properties the object has.
+ * 
+ * @param npobj - Instance
+ * @param value - Array where the method identifiers should be stored.
+ * @param count - Number of such identifiers
+ *
+ * @return True if method correctly executed. False otherwise
+ */
 static bool 
 jsInterface_Enumeration (NPObject *npobj, NPIdentifier **value,
                                  uint32_t *count)
@@ -223,6 +347,16 @@ jsInterface_Enumeration (NPObject *npobj, NPIdentifier **value,
     return true;
 }
 
+/** 
+ * Construct an object
+ * 
+ * @param npobj - Instance
+ * @param args - Arguments to constructor
+ * @param count - Number of arguments
+ * @param result - (?)
+ *
+ * @return True if method correctly executed. False otherwise
+ */
 static bool 
 jsInterface_Construct (NPObject *npobj,
                                        const NPVariant *args,
@@ -232,7 +366,16 @@ jsInterface_Construct (NPObject *npobj,
     return false;
 }
 
-// Expects arguments of the form (string hostIP, [int count], [float interval])
+/** 
+ * Execute a ping 
+ * Expects arguments of the form (string hostIP, [int count], [float interval])
+ * 
+ * @param args - Arguments to function
+ * @param argCount - Number of arguments
+ * @param result - Result of function to be stored here
+ *
+ * @return True if method correctly executed. False otherwise
+ */
 static bool  
 jsNetTool_Ping (const NPVariant *args, uint32_t argCount, NPVariant *result)
 {
@@ -260,25 +403,24 @@ jsNetTool_Ping (const NPVariant *args, uint32_t argCount, NPVariant *result)
         interval = args[2].value.doubleValue;
     }
 
-    // Execute the fork
     {
         FILE* pingIO;
         char *cmd_str;
-        char buf[100];
+        char buf[CMD_BUF_SIZE];
 
         regex_t rtt_re;
         regmatch_t match[2];
 
         regcomp(&rtt_re, "rtt.*= ([0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+).*", REG_EXTENDED);
 
-        cmd_str = (char*)NPN_MemAlloc(200*sizeof(char));
-        snprintf(cmd_str, 200, "ping -q -c%d -i%f %s", count, interval, host);
+        cmd_str = (char*)NPN_MemAlloc(CMD_BUF_SIZE*sizeof(char));
+        snprintf(cmd_str, CMD_BUF_SIZE, "ping -q -c%d -i%f %s", count, interval, host);
 
         // Parse output for results
         pingIO = popen(cmd_str, "r");
         if (pingIO)
         {
-            while(fgets(buf, 100, pingIO))
+            while(fgets(buf, CMD_BUF_SIZE, pingIO))
             {
                 if(regexec(&rtt_re, buf, 2, match, 0) == 0)
                 {
@@ -304,9 +446,4 @@ jsNetTool_Ping (const NPVariant *args, uint32_t argCount, NPVariant *result)
     return true;
 }
 
-static bool 
-jsNetTool_Nslookup (const NPVariant *args, uint32_t argCount, NPVariant *result)
-{
-    return false;
-}
 

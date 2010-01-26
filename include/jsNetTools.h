@@ -1,3 +1,8 @@
+/*
+ * jsNetTools.h - Entry point for jsNetTools plugin
+ * Last Modified: January 26, 2010
+ * Copyright (C) Arun Tejasvi Chaganty 2009 <arunchaganty@gmail.com>
+ */
 
 #ifndef JS_NET_TOOLS_H
 #define JS_NET_TOOLS_H
