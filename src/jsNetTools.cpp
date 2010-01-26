@@ -25,7 +25,7 @@
 NPNetscapeFuncs* gBrowserFuncs = NULL;
 
 /**
- * \struct 
+ * \struct InstanceData
  *
  * Keeps track of a handle to the browser.
  */
@@ -135,6 +135,7 @@ NP_GetValue(void* instance, NPPVariable variable, void* retValue)
  *
  * @param pluginType - Actual mimetype
  * @param instance - Browsers handle to plugin instance
+ * @param mode - ?
  * @param argc - Number of input key/value pairs for the object constructor
  * @param argn - keys for the object constructor
  * @param argv - values for the object constructor
@@ -246,7 +247,7 @@ NPP_URLNotify(NPP instance, const char* URL, NPReason reason, void* notifyData)
  *
  * @param instance - Plugin instance
  * @param variable - Attribute being requested
- * @param retValue - Value of attribute
+ * @param value - Value of attribute
  */
 NPError
 NPP_GetValue(NPP instance, NPPVariable variable, void *value) 
@@ -277,7 +278,7 @@ NPP_GetValue(NPP instance, NPPVariable variable, void *value)
  *
  * @param instance - Plugin instance
  * @param variable - Attribute being set
- * @param retValue - Value of attribute
+ * @param value - Value of attribute
  */
 NPError
 NPP_SetValue(NPP instance, NPNVariable variable, void *value) 

@@ -296,7 +296,7 @@ jsInterface_GetProperty (NPObject *npobj, NPIdentifier name,
  * 
  * @param npobj - Instance
  * @param name - Property name (as a browser-specific identifier) 
- * @param result - Value of the property should be taken from here
+ * @param value - Value of the property should be taken from here
  *
  * @return True if method correctly executed. False otherwise
  */
@@ -312,7 +312,6 @@ jsInterface_SetProperty (NPObject *npobj, NPIdentifier name,
  * 
  * @param npobj - Instance
  * @param name - Property name (as a browser-specific identifier) 
- * @param result - Value of the property should be taken from here
  *
  * @return True if method correctly executed. False otherwise
  */
@@ -352,7 +351,7 @@ jsInterface_Enumeration (NPObject *npobj, NPIdentifier **value,
  * 
  * @param npobj - Instance
  * @param args - Arguments to constructor
- * @param count - Number of arguments
+ * @param argCount - Number of arguments
  * @param result - (?)
  *
  * @return True if method correctly executed. False otherwise

@@ -49,7 +49,10 @@ bin-dist: all
 	tar -czf jsNetTools-$(VERSION).tar.gz jsNetTools-$(VERSION)/
 	rm -r jsNetTools-$(VERSION)
 
-.PHONY: clean
+.PHONY: clean doc
+
+doc: 
+	doxygen
 
 clean:
 	rm -rf bin/*
