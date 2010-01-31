@@ -39,7 +39,7 @@ jsInterfaceObject* jsInterface_New(NPP plugin);
  */
 struct ScriptReply
 {
-    const NPP plugin;
+    NPP plugin;
     NPObject* callb;
     NPVariant* result;
 };

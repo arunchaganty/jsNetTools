@@ -7,67 +7,112 @@
  * Implementation ping utility
  */
 
-#include "NPN.h"
-#include "npruntime.h"
 #include "pingPlugin.h"
+#include "NPN.h"
+#include <npruntime.h>
+#include <npfunctions.h>
 #include "util.h"
 #include <regex.h>
 #include <pthread.h>
 
 #define CMD_BUF_SIZE    500
 
+static void pingWorker(PingArgs* args);
+
 /** 
  * Execute a ping 
  * Expects arguments of the form (string hostIP, [int count], [float interval])
  * 
- * @param args - Arguments to function
+ * @param args - Arguments to function : Should contain an object with suitable properties
  * @param argCount - Number of arguments
  * @param result - Result of function to be stored here
  *
  * @return True if method correctly executed. False otherwise
  */
-// TODO: Figure out how to store a dictionary mapping. This is getting painful.
 bool  
 jsNetTool_Ping (const jsInterfaceObject *obj, const NPVariant *args, uint32_t argCount, NPVariant *result)
 {
+    NPP plugin = obj->plugin;
+    NPObject* params_obj;
+
+    // Validate function call
+    DBG_PRINT("");
+    if (argCount != 1)
+        return NPERR_INVALID_PARAM;
+
+    if ((!NPVARIANT_IS_OBJECT(args[0])))
+        return NPERR_INVALID_PARAM;
+
+    params_obj = NPVARIANT_TO_OBJECT(args[0]);
+    NPN_RetainObject(params_obj);
+
+    DBG_PRINTV("Params Obj: %p", &args[0]);
+
+    // Extract parameters
+    NPVariant param;
+
+    // Host (Required)
     const char* host;
-    int count = 3;
-    double interval = 0.2;
+    if ((NPN_HasProperty(plugin, params_obj, NPN_GetStringIdentifier("host"))))
+    {
+        if ((!NPN_GetProperty(plugin, params_obj, NPN_GetStringIdentifier("host"), &param)) ||
+            (!NPVARIANT_IS_STRING(param)))
+            return NPERR_INVALID_PARAM;
+        host = NPVARIANT_TO_STRING(param).utf8characters;
+    }
+    else
+        return NPERR_INVALID_PARAM;
+
+    // Callback (Required)
     NPObject* callb;
-
-    if (argCount < 1 || argCount > 4)
+    if (NPN_HasMethod(plugin, params_obj, NPN_GetStringIdentifier("callback")))
+    {
+        callb = params_obj;
+    }
+    else
         return NPERR_INVALID_PARAM;
 
-    if (args[0].type != NPVariantType_String)
-        return NPERR_INVALID_PARAM;
-
-    host = args[0].value.stringValue.utf8characters;
-    if (argCount == 2)
+    // Interval (optional)
+    double interval;
+    if ((NPN_HasProperty(plugin, params_obj, NPN_GetStringIdentifier("interval"))))
     {
-        if (args[1].type != NPVariantType_Int32)
+        if (!(NPN_GetProperty(plugin, params_obj, NPN_GetStringIdentifier("interval"), &param)) ||
+             (!NPVARIANT_IS_DOUBLE(param)))
             return NPERR_INVALID_PARAM;
-        count = args[1].value.intValue;
-    }
-    if (argCount == 3)
-    {
-        if (args[2].type != NPVariantType_Double)
-            return NPERR_INVALID_PARAM;
-        interval = args[2].value.doubleValue;
-    }
+        interval = NPVARIANT_TO_DOUBLE(param);
+    } 
+    else
+        interval = 0.2;
 
-    /* Spawn thread for ping */
+    // Count (optional)
+    int count;
+    if ((NPN_HasProperty(plugin, params_obj, NPN_GetStringIdentifier("count"))))
+    {
+        if (!(NPN_GetProperty(plugin, params_obj, NPN_GetStringIdentifier("count"), &param)) ||
+             (!NPVARIANT_IS_INT32(param)))
+            return NPERR_INVALID_PARAM;
+        count = NPVARIANT_TO_INT32(param);
+    } 
+    else
+        count = 3;
+
+    // Spawn thread for ping
     {
         pthread_t thread;
         pthread_attr_t attrs;
         PingArgs *args;
 
-        args = (PingArgs*) NPN_MemAlloc(sizeof(PingArgs));
+        args = (PingArgs*) malloc(sizeof(PingArgs));
         args->host = (char*)host;
         args->count = count;
         args->interval = interval;
 
+        DBG_PRINTV("PingArgs: %p", args, obj);
         args->obj = obj;
         args->callb = callb;
+
+        //pthread_create(&thread, &attrs, pingWorker, args);
+        pingWorker(args);
     }
 
     BOOLEAN_TO_NPVARIANT(true, (*result));
@@ -75,6 +120,13 @@ jsNetTool_Ping (const jsInterfaceObject *obj, const NPVariant *args, uint32_t ar
     return true;
 }
 
+/**
+ * Worker thread function. This function runs in _a seperate context_ than the
+ * brower thread, and hence _no browser functions_ should directly be called.
+ * Only exception is NPN_PluginThreadAsyncCall.
+ *
+ * @param args - arguments to ping
+ */
 static void pingWorker(PingArgs* args)
 {
     const char* host = args->host;
@@ -87,12 +139,13 @@ static void pingWorker(PingArgs* args)
 
     NPUTF8 *str_;
 
+    DBG_PRINT("");
     regex_t rtt_re;
     regmatch_t match[2];
     regcomp(&rtt_re, "rtt.*= ([0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+).*", REG_EXTENDED);
 
     cmd_str = (char*)malloc(CMD_BUF_SIZE*sizeof(char));
-    snprintf(cmd_str, CMD_BUF_SIZE, "ping -q -c%d -i%f %s", count, interval, host);
+    snprintf(cmd_str, CMD_BUF_SIZE, "ping -q -c%d -i%.2f %s", count, interval, host);
 
     // Parse output for results
     pingIO = popen(cmd_str, "r");
@@ -122,6 +175,7 @@ static void pingWorker(PingArgs* args)
 
         reply = (ScriptReply*) malloc (sizeof(ScriptReply));
         reply->callb = (NPObject*) args->callb;
+        reply->result = (NPVariant*) malloc(sizeof(NPVariant));
         STRINGZ_TO_NPVARIANT(str_, *(reply->result));
         // Store result
         jsInvokeCallback((jsInterfaceObject*) args->obj, reply);

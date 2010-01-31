@@ -91,4 +91,5 @@ bool NPN_HasProperty(NPP npp, NPObject* obj, NPIdentifier propertyName);
 bool NPN_HasMethod(NPP npp, NPObject* obj, NPIdentifier methodName);
 void NPN_ReleaseVariantValue(NPVariant *variant);
 void NPN_SetException(NPObject* obj, const NPUTF8 *message);
+void NPN_PluginThreadAsyncCall(NPP instance, void (*func) (void *), void *userData);
 

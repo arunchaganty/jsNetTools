@@ -18,9 +18,21 @@
             var hostEntry = document.getElementById(hostSrc);
             var resultEntry = document.getElementById(resultLoc);
             var netTool = document.embeds[0];
-            var rtt = netTool.Ping(hostEntry.innerHTML);
-            if (rtt)
-                resultEntry.innerHTML = rtt;
+            var ret = netTool.Ping({
+                host: hostEntry.innerHTML,
+                callback: function (ret) {
+                    var resultEntry = document.getElementById(resultLoc);
+                    if (ret)
+                        resultEntry.innerHTML = ret;
+                    else
+                        resultEntry.innerHTML = "Ping Failed.";
+                    return true;
+                    },
+                 interval: 0.2,
+                 count: 3
+                });
+            if (ret)
+                resultEntry.innerHTML = "Pinging...";
             else
                 resultEntry.innerHTML = "Ping Failed.";
         }

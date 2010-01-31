@@ -310,3 +310,8 @@ void NPN_SetException(NPObject* obj, const NPUTF8 *message)
   gBrowserFuncs->setexception(obj, message);
 }
 
+void NPN_PluginThreadAsyncCall(NPP instance, void (*func) (void *), void *userData)
+{
+  gBrowserFuncs->pluginthreadasynccall(instance,  func, userData);
+}
+
