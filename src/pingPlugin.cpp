@@ -23,6 +23,7 @@ static void pingWorker(PingArgs* args);
  * Execute a ping 
  * Expects arguments of the form (string hostIP, [int count], [float interval])
  * 
+ * @param obj  - The calling object - required to determine associated plugin
  * @param args - Arguments to function : Should contain an object with suitable properties
  * @param argCount - Number of arguments
  * @param result - Result of function to be stored here
