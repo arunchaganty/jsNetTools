@@ -11,8 +11,8 @@ TARGETS=lib/libjsNetTools.so
 INSTALLDIR=$(HOME)/.mozilla/plugins
 VERSION=0.1
 
-SRCFILES=include/ misc/ src/ tests/ Makefile README 
-DISTFILES=lib/libjsNetTools.so misc/install.sh tests/ README
+SRCFILES=include/ doc/ misc/ src/ tests/ Makefile Doxyfile README 
+DISTFILES=lib/libjsNetTools.so misc/install.sh doc/ tests/ README
 
 all: $(TARGETS)
 
