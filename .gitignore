@@ -1,7 +1,11 @@
 bin/*
+doc/*
 lib/*
 obj/*
+*.tar.gz
 *.o
 *.so
 *.swp
 *~
+tags
+cscope.out
