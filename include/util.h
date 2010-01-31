@@ -10,6 +10,9 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <assert.h>
+#include <string.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 

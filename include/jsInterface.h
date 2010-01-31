@@ -7,11 +7,56 @@
 #ifndef JS_INTERFACE_H
 #define JS_INTERFACE_H
 
-#include <npapi.h>
+#include "NPN.h"
 #include <npfunctions.h>
 #include <npruntime.h>
 
-NPObject* jsInterface_New(NPP plugin);
+
+/**
+ * \struct jsInterfaceObject
+ *
+ * jsNetTools object - contains some private members
+ */
+struct jsInterfaceObject
+{
+    NPObject obj;
+    NPP plugin;
+};
+
+/** 
+ * Create a new jsNetToolsClass instance
+ * 
+ * @param plugin - Parent plugin
+ * @return JS Object
+ */
+jsInterfaceObject* jsInterface_New(NPP plugin);
+
+
+/**
+ * \struct ScriptReply
+ *
+ * Contains information required to callback a function on browser
+ */
+struct ScriptReply
+{
+    const NPP plugin;
+    NPObject* callb;
+    NPVariant* result;
+};
+
+/**
+ * Handles callbacks for async functions with a reply
+ * 
+ * @param obj Object that contains the plugin
+ * @param reply Reply structure that contains which callback should be called, and with what args
+ */
+void 
+jsInvokeCallback(jsInterfaceObject* obj, ScriptReply* reply);
+
+/**
+ * Type for callbacks to NPN_PluginThreadAsyncCall
+ */
+typedef void (*NPCallback)(void*);
 
 #endif  // JS_INTERFACE_H
 

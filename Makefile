@@ -16,7 +16,7 @@ DISTFILES=lib/libjsNetTools.so misc/install.sh tests/ README
 
 all: $(TARGETS)
 
-lib/libjsNetTools.so: obj/jsNetTools.o obj/jsInterface.o obj/NPN.o
+lib/libjsNetTools.so: obj/jsNetTools.o obj/jsInterface.o obj/NPN.o obj/pingPlugin.o
 	if [ ! -e lib ]; then mkdir lib; fi;
 	$(CC) $(CFLAGS) -shared $^ -o $@
 
@@ -29,6 +29,10 @@ obj/jsInterface.o: src/jsInterface.cpp
 	$(CC) $(CFLAGS) -c $^ -o $@
 
 obj/NPN.o: src/NPN.cpp
+	if [ ! -e obj ]; then mkdir obj; fi;
+	$(CC) $(CFLAGS) -c $^ -o $@
+
+obj/pingPlugin.o: src/pingPlugin.cpp
 	if [ ! -e obj ]; then mkdir obj; fi;
 	$(CC) $(CFLAGS) -c $^ -o $@
 

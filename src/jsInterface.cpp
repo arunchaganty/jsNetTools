@@ -1,8 +1,3 @@
-/*
- * jsInterface.cpp - 
- * Last Modified: January 26, 2010
- * Copyright (C) Arun Tejasvi Chaganty 2009 <arunchaganty@gmail.com>
- */
 /**
  * @file jsInterface.cpp
  * @author Arun Tejasvi Chaganty <arunchaganty@gmail.com>
@@ -16,12 +11,8 @@
 #include "jsInterface.h"
 #include "NPN.h"
 #include "util.h"
-#include <assert.h>
-#include <string.h>
-#include <stdlib.h>
-#include <regex.h>
 
-#define CMD_BUF_SIZE    500
+#include "pingPlugin.h"
 
 extern NPNetscapeFuncs* gBrowserFuncs;
 
@@ -57,8 +48,7 @@ static bool jsInterface_Construct (NPObject *npobj,
  * jsInterfaceMethodNames and jsInterfaceMethodImpl arrays respectively.
  */
 
-typedef bool (*ScriptableFunc) (const NPVariant *args, uint32_t argCount, NPVariant *result);
-static bool jsNetTool_Ping (const NPVariant *args, uint32_t argCount, NPVariant *result);
+typedef bool (*ScriptableFunc) (const jsInterfaceObject* obj, const NPVariant* args, uint32_t argCount, NPVariant* result);
 
 static const NPUTF8* jsInterfaceMethodNames[] = 
 {
@@ -85,7 +75,7 @@ jsInterfacePropertyNames[] =
 static NPClass jsNetToolsClass =
 {
     NP_CLASS_STRUCT_VERSION_ENUM,   // structVersion
-    NULL,                           // allocate
+    jsInterface_Allocate,           // allocate
     NULL,                           // deallocate
     jsInterface_Invalidate,         // invalidate
     jsInterface_HasMethod,          // hasMethod
@@ -107,11 +97,12 @@ static NPClass jsNetToolsClass =
  * @param plugin - Parent plugin
  * @return JS Object
  */
-NPObject*
+jsInterfaceObject* 
 jsInterface_New(NPP plugin)
 {
-    NPObject* object = NULL;
-    object = NPN_CreateObject(plugin, &jsNetToolsClass);
+    jsInterfaceObject* object = NULL;
+    object = (jsInterfaceObject*) NPN_CreateObject(plugin, &jsNetToolsClass);
+    object->plugin = plugin;
 
     return object;
 }
@@ -127,8 +118,9 @@ jsInterface_New(NPP plugin)
 static NPObject* 
 jsInterface_Allocate (NPP plugin, NPClass *aClass)
 {
-    assert(false);
-    return NULL;
+    jsInterfaceObject *object;
+    object = (jsInterfaceObject*) NPN_MemAlloc(sizeof(jsInterfaceObject));
+    return (NPObject*) object;
 }
 
 /** 
@@ -205,6 +197,7 @@ jsInterface_Invoke (NPObject *npobj, NPIdentifier name,
     int i;
     bool retVal = false;
     NPUTF8* methodName;
+    jsInterfaceObject* obj = (jsInterfaceObject*)npobj;
 
     methodName = NPN_UTF8FromIdentifier(name);
     if (!methodName)
@@ -214,12 +207,12 @@ jsInterface_Invoke (NPObject *npobj, NPIdentifier name,
     {
         if (strcmp(methodName, jsInterfaceMethodNames[i]) == 0)
         {
-            retVal = jsInterfaceMethodImpl[i](args, argCount, result);
+            retVal = jsInterfaceMethodImpl[i](obj, args, argCount, result);
             break;
         }
     }
 
-    return true;
+    return retVal;
 }
 
 /** 
@@ -288,7 +281,6 @@ jsInterface_GetProperty (NPObject *npobj, NPIdentifier name,
                                  NPVariant *result)
 {
     return false;
-
 }
 
 /** 
@@ -365,84 +357,38 @@ jsInterface_Construct (NPObject *npobj,
     return false;
 }
 
-/** 
- * Execute a ping 
- * Expects arguments of the form (string hostIP, [int count], [float interval])
- * 
- * @param args - Arguments to function
- * @param argCount - Number of arguments
- * @param result - Result of function to be stored here
+/**
+ * Calls the function in the reply with the reply of the function. This has to
+ * be done in the browser's main thread, and hence this functions
  *
- * @return True if method correctly executed. False otherwise
+ * @param reply - Struct containing the callback object, and the reply param.
  */
-static bool  
-jsNetTool_Ping (const NPVariant *args, uint32_t argCount, NPVariant *result)
+static void 
+jsReply (ScriptReply* reply)
 {
-    const char* host;
-    int count = 3;
-    double interval = 0.2;
-
-    if (argCount < 1 || argCount > 3)
-        return NPERR_INVALID_PARAM;
-
-    if (args[0].type != NPVariantType_String)
-        return NPERR_INVALID_PARAM;
-
-    host = args[0].value.stringValue.utf8characters;
-    if (argCount == 2)
+    if (reply)
     {
-        if (args[1].type != NPVariantType_Int32)
-            return NPERR_INVALID_PARAM;
-        count = args[1].value.intValue;
+        NPN_InvokeDefault(reply->plugin, reply->callb, reply->result, 1, NULL);
     }
-    if (argCount == 3)
-    {
-        if (args[2].type != NPVariantType_Double)
-            return NPERR_INVALID_PARAM;
-        interval = args[2].value.doubleValue;
-    }
-
-    {
-        FILE* pingIO;
-        char *cmd_str;
-        char buf[CMD_BUF_SIZE];
-
-        regex_t rtt_re;
-        regmatch_t match[2];
-
-        regcomp(&rtt_re, "rtt.*= ([0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+).*", REG_EXTENDED);
-
-        cmd_str = (char*)NPN_MemAlloc(CMD_BUF_SIZE*sizeof(char));
-        snprintf(cmd_str, CMD_BUF_SIZE, "ping -q -c%d -i%f %s", count, interval, host);
-
-        // Parse output for results
-        pingIO = popen(cmd_str, "r");
-        if (pingIO)
-        {
-            while(fgets(buf, CMD_BUF_SIZE, pingIO))
-            {
-                if(regexec(&rtt_re, buf, 2, match, 0) == 0)
-                {
-                    int len;
-                    NPUTF8 *str_;
-
-                    len = match[1].rm_eo - match[1].rm_so + 1;
-                    str_ = (NPUTF8*)NPN_MemAlloc(len*sizeof(NPUTF8));
-                    strncpy((char*)str_, buf+match[1].rm_so, len-1);
-                    str_[len-1] = '\0';
-
-                    STRINGZ_TO_NPVARIANT(str_, *result);
-                    break;
-                }
-            }
-            fclose(pingIO);
-        }
-        NPN_MemFree(cmd_str);
-
-        regfree(&rtt_re);
-    }
-
-    return true;
 }
 
+/**
+ * Handles callbacks for async functions with a reply
+ * 
+ * @param obj Object that contains the plugin
+ * @param reply Reply structure that contains which callback should be called, and with what args
+ */
+void 
+jsInvokeCallback(jsInterfaceObject* obj, ScriptReply* reply)
+{
+    NPP plugin = obj->plugin;
+
+    assert(plugin);
+
+    if (reply) 
+    {
+        reply->plugin = plugin;
+        NPN_PluginThreadAsyncCall(plugin, (NPCallback)jsReply, reply->result);
+    }
+}
 
