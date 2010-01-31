@@ -5,7 +5,7 @@
 CC=g++
 CFLAGS=-Wall -DXP_UNIX=1 -DMOZ_X11=1 -fPIC -g -Iinclude `pkg-config --cflags libxul`
 CXXFLAGS=$(CFLAGS)
-LDFLAGS=`pkg-config --libs libxul`
+LDFLAGS=`pkg-config --libs libxul` -lpthread
 TARGETS=lib/libjsNetTools.so
 
 INSTALLDIR=$(HOME)/.mozilla/plugins

@@ -199,7 +199,6 @@ jsInterface_Invoke (NPObject *npobj, NPIdentifier name,
     NPUTF8* methodName;
     jsInterfaceObject* obj = (jsInterfaceObject*)npobj;
 
-    DBG_PRINTV("NPObj: %p", npobj);
     methodName = NPN_UTF8FromIdentifier(name);
     if (!methodName)
         return false;
@@ -371,9 +370,11 @@ jsReply (ScriptReply* reply)
     {
         NPVariant result;
         NPN_Invoke(reply->plugin, reply->callb, NPN_GetStringIdentifier("callback"), reply->result, 1, &result);
+
         NPN_ReleaseObject(reply->callb);
+        NPN_MemFree(reply->result);
+        free(reply);
     }
-    free(reply);
 }
 
 /**
@@ -391,6 +392,7 @@ jsInvokeCallback(jsInterfaceObject* obj, ScriptReply* reply)
     assert(plugin);
     if (reply) 
     {
+        // Populate the reply structure
         reply->plugin = plugin;
         NPN_PluginThreadAsyncCall(plugin, (NPCallback)jsReply, reply);
     }

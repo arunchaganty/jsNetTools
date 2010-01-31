@@ -44,9 +44,6 @@ jsNetTool_Ping (const jsInterfaceObject *obj, const NPVariant *args, uint32_t ar
         return NPERR_INVALID_PARAM;
 
     params_obj = NPVARIANT_TO_OBJECT(args[0]);
-    NPN_RetainObject(params_obj);
-
-    DBG_PRINTV("Params Obj: %p", &args[0]);
 
     // Extract parameters
     NPVariant param;
@@ -58,7 +55,9 @@ jsNetTool_Ping (const jsInterfaceObject *obj, const NPVariant *args, uint32_t ar
         if ((!NPN_GetProperty(plugin, params_obj, NPN_GetStringIdentifier("host"), &param)) ||
             (!NPVARIANT_IS_STRING(param)))
             return NPERR_INVALID_PARAM;
-        host = NPVARIANT_TO_STRING(param).utf8characters;
+        // IMPORTANT: host should be freed after use
+        host = strndup(NPVARIANT_TO_STRING(param).utf8characters, CMD_BUF_SIZE);
+        NPN_ReleaseVariantValue(&param);
     }
     else
         return NPERR_INVALID_PARAM;
@@ -68,6 +67,8 @@ jsNetTool_Ping (const jsInterfaceObject *obj, const NPVariant *args, uint32_t ar
     if (NPN_HasMethod(plugin, params_obj, NPN_GetStringIdentifier("callback")))
     {
         callb = params_obj;
+        // Keep the object - it will be need to use the callback
+        NPN_RetainObject(params_obj);
     }
     else
         return NPERR_INVALID_PARAM;
@@ -80,6 +81,7 @@ jsNetTool_Ping (const jsInterfaceObject *obj, const NPVariant *args, uint32_t ar
              (!NPVARIANT_IS_DOUBLE(param)))
             return NPERR_INVALID_PARAM;
         interval = NPVARIANT_TO_DOUBLE(param);
+        NPN_ReleaseVariantValue(&param);
     } 
     else
         interval = 0.2;
@@ -92,6 +94,7 @@ jsNetTool_Ping (const jsInterfaceObject *obj, const NPVariant *args, uint32_t ar
              (!NPVARIANT_IS_INT32(param)))
             return NPERR_INVALID_PARAM;
         count = NPVARIANT_TO_INT32(param);
+        NPN_ReleaseVariantValue(&param);
     } 
     else
         count = 3;
@@ -102,17 +105,20 @@ jsNetTool_Ping (const jsInterfaceObject *obj, const NPVariant *args, uint32_t ar
         pthread_attr_t attrs;
         PingArgs *args;
 
+
         args = (PingArgs*) malloc(sizeof(PingArgs));
+        args->obj = obj;
+
         args->host = (char*)host;
         args->count = count;
         args->interval = interval;
 
-        DBG_PRINTV("PingArgs: %p", args, obj);
-        args->obj = obj;
         args->callb = callb;
 
-        //pthread_create(&thread, &attrs, pingWorker, args);
-        pingWorker(args);
+        // Create the worker thread.
+        // NOTE: The worker thread must free host, args and release reference on the
+        // object
+        pthread_create(&thread, &attrs, (void* (*)(void*))pingWorker, args);
     }
 
     BOOLEAN_TO_NPVARIANT(true, (*result));
@@ -129,27 +135,30 @@ jsNetTool_Ping (const jsInterfaceObject *obj, const NPVariant *args, uint32_t ar
  */
 static void pingWorker(PingArgs* args)
 {
-    const char* host = args->host;
+    DBG_PRINT("");
+    char* host = args->host;
     int count = args->count;
     double interval = args->interval;
 
-    FILE* pingIO;
+    FILE* pingIO = NULL;
     char *cmd_str;
     char buf[CMD_BUF_SIZE];
 
     NPUTF8 *str_;
 
-    DBG_PRINT("");
+    // Construct a regex matcher for the ping output
     regex_t rtt_re;
     regmatch_t match[2];
     regcomp(&rtt_re, "rtt.*= ([0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+/[0-9]+\\.[0-9]+).*", REG_EXTENDED);
 
     cmd_str = (char*)malloc(CMD_BUF_SIZE*sizeof(char));
     snprintf(cmd_str, CMD_BUF_SIZE, "ping -q -c%d -i%.2f %s", count, interval, host);
+    // Free the host string
+    free(host);
 
     // Parse output for results
     pingIO = popen(cmd_str, "r");
-    if (pingIO)
+    if (pingIO != NULL)
     {
         while(fgets(buf, CMD_BUF_SIZE, pingIO))
         {
@@ -157,8 +166,9 @@ static void pingWorker(PingArgs* args)
             {
                 int len;
 
+                // Copy across the results
                 len = match[1].rm_eo - match[1].rm_so + 1;
-                str_ = (NPUTF8*)malloc(len*sizeof(NPUTF8));
+                str_ = (NPUTF8*)NPN_MemAlloc(len*sizeof(NPUTF8));
                 strncpy((char*)str_, buf+match[1].rm_so, len-1);
                 str_[len-1] = '\0';
 
@@ -166,21 +176,22 @@ static void pingWorker(PingArgs* args)
             }
         }
         fclose(pingIO);
+
+        // Construct a "reply" object for the callback
+        ScriptReply* reply;
+        reply = (ScriptReply*) malloc (sizeof(ScriptReply));
+        reply->callb = (NPObject*) args->callb;
+        reply->result = (NPVariant*) NPN_MemAlloc(sizeof(NPVariant));
+        STRINGZ_TO_NPVARIANT(str_, *(reply->result));
+        // Return result using callback
+        // IMPORTANT: Remember to free callb, reply and reply->result
+        jsInvokeCallback((jsInterfaceObject*) args->obj, reply);
     }
     free(cmd_str);
     regfree(&rtt_re);
 
-    {
-        ScriptReply* reply;
-
-        reply = (ScriptReply*) malloc (sizeof(ScriptReply));
-        reply->callb = (NPObject*) args->callb;
-        reply->result = (NPVariant*) malloc(sizeof(NPVariant));
-        STRINGZ_TO_NPVARIANT(str_, *(reply->result));
-        // Store result
-        jsInvokeCallback((jsInterfaceObject*) args->obj, reply);
-    }
     free(args);
+    pthread_exit(NULL);
 }
 
 
