@@ -9,7 +9,7 @@ LDFLAGS=`pkg-config --libs libxul` -lpthread
 TARGETS=lib/libjsNetTools.so
 
 INSTALLDIR=$(HOME)/.mozilla/plugins
-VERSION=0.1
+VERSION=0.2
 
 SRCFILES=include/ doc/ misc/ src/ tests/ Makefile Doxyfile README 
 DISTFILES=lib/libjsNetTools.so misc/install.sh doc/ tests/ README
